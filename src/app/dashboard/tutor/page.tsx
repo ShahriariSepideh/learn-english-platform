@@ -27,12 +27,6 @@ function TutorDashboardContent() {
                         حساب استاد شما هنوز تأیید نشده است
                     </h1>
 
-                    <p className="mt-4 leading-8 text-slate-500 dark:text-slate-400">
-                        استاد باید ابتدا اطلاعات پروفایل، سوابق آموزشی، مدارک و ویدیو معرفی
-                        خود را ارسال کند. سپس ادمین در پنل Django وضعیت استاد را تأیید
-                        می‌کند. تا قبل از تأیید، دسترسی کامل به داشبورد استاد فعال نمی‌شود.
-                    </p>
-
                     <button
                         type="button"
                         onClick={logout}

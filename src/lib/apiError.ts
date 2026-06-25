@@ -40,14 +40,23 @@ function extractMessageFromValue(value: ApiErrorValue): string | null {
 }
 
 export function getApiErrorMessage(error: unknown): string {
+    if (error instanceof Error && !axios.isAxiosError(error)) {
+        return error.message || "خطای غیرمنتظره‌ای رخ داد.";
+    }
+
     if (!axios.isAxiosError<ApiErrorResponse | string>(error)) {
         return "خطای غیرمنتظره‌ای رخ داد.";
     }
 
+    const status = error.response?.status;
     const data = error.response?.data;
 
     if (!data) {
         return "ارتباط با سرور برقرار نشد.";
+    }
+
+    if (status === 401) {
+        return "ایمیل یا رمز عبور اشتباه است یا نشست کاربری معتبر نیست.";
     }
 
     if (typeof data === "string") {
