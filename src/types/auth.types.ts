@@ -2,10 +2,15 @@ export type UserRole = "student" | "tutor" | "admin";
 
 export interface AuthUser {
     id: number | string;
-    name?: string;
-    full_name?: string;
     email: string;
     role: UserRole;
+
+    name?: string;
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+
+    is_teacher?: boolean;
     approved_is?: boolean;
 }
 
@@ -21,14 +26,15 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-    name: string;
     email: string;
     password: string;
-    role: Exclude<UserRole, "admin">;
+    first_name: string;
+    last_name: string;
+    is_teacher: boolean;
 }
 
 export interface AuthUserResponse {
-    user?: AuthUser;
+    user?: Partial<AuthUser>;
     detail?: string;
     message?: string;
 }
