@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -123,6 +124,7 @@ function StudentProfileForm({
     const {
         register,
         handleSubmit,
+        reset,
         formState: { errors, isSubmitting },
     } = useForm<StudentProfileFormValues>({
         resolver: zodResolver(studentProfileSchema),
@@ -134,10 +136,37 @@ function StudentProfileForm({
         },
     });
 
+    useEffect(() => {
+        if (!profile) return;
+
+        reset({
+            first_name: profile.first_name ?? "",
+            last_name: profile.last_name ?? "",
+            phone_number: profile.phone_number ?? "",
+            bio: profile.bio ?? "",
+        });
+    }, [profile, reset]);
+
     const mutation = useMutation({
         mutationFn: updateStudentProfile,
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["student-profile"] });
+        onSuccess: (_data, variables) => {
+            const updatedProfile: StudentProfileUser = {
+                ...(profile ?? {}),
+                first_name: variables.first_name ?? "",
+                last_name: variables.last_name ?? "",
+                phone_number: variables.phone_number ?? "",
+                bio: variables.bio ?? "",
+            };
+
+            queryClient.setQueryData(["student-profile"], updatedProfile);
+
+            reset({
+                first_name: updatedProfile.first_name ?? "",
+                last_name: updatedProfile.last_name ?? "",
+                phone_number: updatedProfile.phone_number ?? "",
+                bio: updatedProfile.bio ?? "",
+            });
+
             toast.success("پروفایل با موفقیت به‌روزرسانی شد.");
         },
         onError: (error) => {
@@ -146,12 +175,14 @@ function StudentProfileForm({
     });
 
     function onSubmit(values: StudentProfileFormValues) {
-        mutation.mutate({
+        const cleanedValues: StudentProfileFormValues = {
             first_name: values.first_name.trim(),
             last_name: values.last_name.trim(),
             phone_number: values.phone_number?.trim() ?? "",
             bio: values.bio?.trim() ?? "",
-        });
+        };
+
+        mutation.mutate(cleanedValues);
     }
 
     return (

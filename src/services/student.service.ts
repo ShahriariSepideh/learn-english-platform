@@ -69,13 +69,25 @@ function mergeStudentProfile(
     base: StudentProfileUser,
     next: StudentProfileUser
 ): StudentProfileUser {
-    return {
+    const merged: StudentProfileUser = {
         ...base,
         ...next,
         student: {
             ...(base.student ?? {}),
             ...(next.student ?? {}),
         },
+    };
+
+    return {
+        ...merged,
+        phone_number:
+            next.phone_number && next.phone_number.trim() !== ""
+                ? next.phone_number
+                : base.phone_number ?? "",
+        bio:
+            next.bio && next.bio.trim() !== ""
+                ? next.bio
+                : base.bio ?? "",
     };
 }
 
@@ -88,23 +100,12 @@ function normalizeStudentProfile(
 export async function getStudentProfile(): Promise<StudentProfileUser> {
     initializeAccessToken();
 
-    const [profileResult, meResult, dashboardResult] = await Promise.allSettled([
-        api.get<unknown>("/students/me/profile/"),
+    const [meResult, dashboardResult] = await Promise.allSettled([
         api.get<unknown>("/me/"),
         api.get<unknown>("/students/me/dashboard/"),
     ]);
 
     let profile: StudentProfileUser = {};
-
-    if (profileResult.status === "fulfilled") {
-        const profileUser = normalizeUserData(profileResult.value.data);
-        const profileStudent = extractStudentInfo(profileResult.value.data);
-
-        profile = mergeStudentProfile(profile, {
-            ...profileUser,
-            student: profileStudent ?? profileUser.student,
-        });
-    }
 
     if (meResult.status === "fulfilled") {
         const meUser = normalizeUserData(meResult.value.data);
@@ -126,11 +127,7 @@ export async function getStudentProfile(): Promise<StudentProfileUser> {
         });
     }
 
-    if (
-        profileResult.status === "rejected" &&
-        meResult.status === "rejected" &&
-        dashboardResult.status === "rejected"
-    ) {
+    if (meResult.status === "rejected" && dashboardResult.status === "rejected") {
         throw dashboardResult.reason;
     }
 
