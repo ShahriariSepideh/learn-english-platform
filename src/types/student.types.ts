@@ -13,7 +13,7 @@ export interface StudentMiniTutor {
 }
 
 export interface StudentInfo {
-    id: number | string;
+    id?: number | string;
     user?: number | string;
     courses_list?: Array<number | string | StudentMiniCourse>;
     favourite_tutors?: Array<number | string | StudentMiniTutor>;
@@ -34,4 +34,11 @@ export interface StudentProfileUser {
 
 export interface StudentProfileResponse {
     user?: StudentProfileUser;
+}
+
+export interface UpdateStudentProfilePayload {
+    first_name: string;
+    last_name: string;
+    phone_number?: string;
+    bio?: string;
 }

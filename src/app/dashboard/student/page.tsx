@@ -1,11 +1,12 @@
 "use client";
-
+import Link from "next/link";
 import type { ReactNode } from "react";
 import {
     BookOpen,
     CheckCircle2,
     Heart,
     Loader2,
+    Pencil,
     RefreshCcw,
     UserRound,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { routes } from "@/lib/routes";
 import { getStudentProfile } from "@/services/student.service";
 import type { StudentInfo, StudentProfileUser } from "@/types/student.types";
 
@@ -84,10 +86,21 @@ function StudentDashboardContent() {
                                 خوش آمدید، {displayName}
                             </h1>
 
+                            <p className="mt-2 leading-7 text-slate-500 transition-colors duration-300 dark:text-slate-400">
+                                اطلاعات این داشبورد از APIهای واقعی بک‌اند دریافت می‌شود.
+                            </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <ThemeToggle />
+
+                            <Link
+                                href={routes.studentEditProfile}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                                <Pencil size={18} />
+                                ویرایش پروفایل
+                            </Link>
 
                             <button
                                 type="button"
