@@ -134,17 +134,11 @@ function StudentDashboardContent() {
                 <div className="mb-8 rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-black/30">
                     <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <p className="mb-2 text-sm font-bold text-emerald-600 transition-colors duration-300 dark:text-emerald-300">
-                                Student Dashboard
-                            </p>
 
                             <h1 className="text-2xl font-black text-slate-950 transition-colors duration-300 dark:text-white">
                                 خوش آمدید، {displayName}
                             </h1>
 
-                            <p className="mt-2 leading-7 text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                                اطلاعات پروفایل، دوره‌ها و وضعیت ثبت‌نام‌های شما از APIهای واقعی بک‌اند دریافت می‌شود.
-                            </p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
@@ -292,9 +286,6 @@ function EnrollmentSection({
                         دوره‌های ثبت‌نام‌شده
                     </h2>
 
-                    <p className="mt-2 leading-7 text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                        وضعیت ثبت‌نام شما در هر دوره در این بخش نمایش داده می‌شود.
-                    </p>
                 </div>
 
                 {isLoading && (
