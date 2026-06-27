@@ -7,8 +7,9 @@ import {
     CheckCircle2,
     Clock3,
     Heart,
-    Loader2,
     Pencil,
+    Home,
+    Loader2,
     RefreshCcw,
     UserRound,
     XCircle,
@@ -65,7 +66,12 @@ function getStatusLabel(status: string) {
         case "rejected":
             return "رد شده";
         case "pending":
+        case "under_review":
             return "در انتظار بررسی";
+        case "pending_payment":
+            return "در انتظار پرداخت";
+        case "cancelled":
+            return "لغو شده";
         default:
             return status || "نامشخص";
     }
@@ -78,6 +84,7 @@ function getStatusClassName(status: string) {
         case "rejected":
             return "border-red-200 bg-red-50 text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300";
         case "pending":
+        case "under_review":
         default:
             return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300";
     }
@@ -90,6 +97,7 @@ function getStatusIcon(status: string) {
         case "rejected":
             return <XCircle size={16} />;
         case "pending":
+        case "under_review":
         default:
             return <Clock3 size={16} />;
     }
@@ -142,9 +150,6 @@ function StudentDashboardContent() {
                                 خوش آمدید، {displayName}
                             </h1>
 
-                            <p className="mt-2 leading-7 text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                                اطلاعات پروفایل، دوره‌ها و وضعیت ثبت‌نام‌های شما از APIهای واقعی بک‌اند دریافت می‌شود.
-                            </p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
@@ -155,13 +160,29 @@ function StudentDashboardContent() {
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
                             >
                                 <Pencil size={18} />
-                                ویرایش پروفایل
+                                ویرایش اطلاعات
+                            </Link>
+
+                            <Link
+                                href="/"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                                <Home size={18} />
+                                خانه
+                            </Link>
+
+                            <Link
+                                href="/courses"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                                <BookOpen size={18} />
+                                دوره‌ها
                             </Link>
 
                             <button
                                 type="button"
                                 onClick={logout}
-                                className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 py-3 font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-400"
                             >
                                 خروج
                             </button>
@@ -291,10 +312,6 @@ function EnrollmentSection({
                     <h2 className="text-lg font-black text-slate-950 transition-colors duration-300 dark:text-white">
                         دوره‌های ثبت‌نام‌شده
                     </h2>
-
-                    <p className="mt-2 leading-7 text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                        وضعیت ثبت‌نام شما در هر دوره در این بخش نمایش داده می‌شود.
-                    </p>
                 </div>
 
                 {isLoading && (
@@ -406,6 +423,7 @@ function DashboardError({
         </div>
     );
 }
+
 
 export default function StudentDashboardPage() {
     return (
