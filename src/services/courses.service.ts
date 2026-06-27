@@ -1,6 +1,13 @@
 import { api } from "@/services/api";
 import { initializeAccessToken } from "@/services/auth.service";
 
+export type CourseTutorUser = {
+    id?: number | string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+};
+
 export type CourseTutor = {
     id?: number | string;
     first_name?: string;
@@ -8,7 +15,7 @@ export type CourseTutor = {
     name?: string;
     full_name?: string;
     email?: string;
-    user?: number | string;
+    user?: number | string | CourseTutorUser;
     profile_picture?: string | null;
     languages_spoken?: string[] | Record<string, string>;
     subjects?: unknown[];
@@ -81,10 +88,80 @@ function normalizeCourses(data: unknown): Course[] {
     return [];
 }
 
-export async function getCourses(): Promise<Course[]> {
-    const response = await api.get<unknown>("/courses/");
+function normalizeTutors(data: unknown): CourseTutor[] {
+    if (Array.isArray(data)) {
+        return data as CourseTutor[];
+    }
 
-    return normalizeCourses(response.data);
+    if (isRecord(data)) {
+        if (Array.isArray(data.results)) {
+            return data.results as CourseTutor[];
+        }
+
+        if (Array.isArray(data.tutors)) {
+            return data.tutors as CourseTutor[];
+        }
+
+        if (Array.isArray(data.data)) {
+            return data.data as CourseTutor[];
+        }
+    }
+
+    return [];
+}
+
+function getTutorId(value: CourseTutor | string | number | null | undefined): string {
+    if (!value) return "";
+
+    if (typeof value === "string" || typeof value === "number") {
+        return String(value);
+    }
+
+    return String(value.id ?? "");
+}
+
+function enrichCoursesWithTutorNames(courses: Course[], tutors: CourseTutor[]): Course[] {
+    const tutorsById = new Map<string, CourseTutor>();
+
+    tutors.forEach((tutor) => {
+        const tutorId = String(tutor.id ?? "");
+
+        if (tutorId) {
+            tutorsById.set(tutorId, tutor);
+        }
+    });
+
+    return courses.map((course) => {
+        const currentTutor = course.tutor ?? course.teacher ?? course.instructor;
+        const tutorId = getTutorId(currentTutor);
+        const fullTutor = tutorId ? tutorsById.get(tutorId) : undefined;
+
+        if (!fullTutor) {
+            return course;
+        }
+
+        return {
+            ...course,
+            tutor: {
+                ...(typeof currentTutor === "object" && currentTutor !== null ? currentTutor : {}),
+                ...fullTutor,
+            },
+        };
+    });
+}
+
+export async function getCourses(): Promise<Course[]> {
+    const coursesResponse = await api.get<unknown>("/courses/");
+    const courses = normalizeCourses(coursesResponse.data);
+
+    try {
+        const tutorsResponse = await api.get<unknown>("/tutors/");
+        const tutors = normalizeTutors(tutorsResponse.data);
+
+        return enrichCoursesWithTutorNames(courses, tutors);
+    } catch {
+        return courses;
+    }
 }
 
 export async function enrollInCourse(payload: EnrollInCoursePayload) {
@@ -128,7 +205,16 @@ export function getCourseTutorName(course: Course): string {
     }
 
     if (typeof tutor === "string" || typeof tutor === "number") {
-        return "استاد نامشخص";
+        return `استاد شماره ${tutor}`;
+    }
+
+    if (typeof tutor.user === "object" && tutor.user !== null) {
+        const firstName = tutor.user.first_name ?? "";
+        const lastName = tutor.user.last_name ?? "";
+        const fullName = `${firstName} ${lastName}`.trim();
+
+        if (fullName) return fullName;
+        if (tutor.user.email) return tutor.user.email;
     }
 
     const fullName =
@@ -136,7 +222,7 @@ export function getCourseTutorName(course: Course): string {
         tutor.name ??
         `${tutor.first_name ?? ""} ${tutor.last_name ?? ""}`.trim();
 
-    return fullName || tutor.email || "استاد نامشخص";
+    return fullName || tutor.email || `استاد شماره ${tutor.id ?? "-"}`;
 }
 
 export function getCourseLevel(course: Course): string {

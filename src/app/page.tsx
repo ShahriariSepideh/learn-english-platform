@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   LogOut,
   ImageIcon,
-  Sparkles,
   UserRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -42,7 +41,6 @@ import {
 } from "@/services/blogs.service";
 
 export default function HomePage() {
-
   const { user, isAuthenticated } = useAuth();
 
   const dashboardInfo = getDashboardInfo(user);
@@ -52,26 +50,17 @@ export default function HomePage() {
     window.location.href = "/login";
   }
 
-  const {
-    data: courses = [],
-    isLoading: coursesLoading,
-  } = useQuery({
+  const { data: courses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["home-courses"],
     queryFn: getCourses,
   });
 
-  const {
-    data: tutors = [],
-    isLoading: tutorsLoading,
-  } = useQuery({
+  const { data: tutors = [], isLoading: tutorsLoading } = useQuery({
     queryKey: ["home-tutors"],
     queryFn: getTutors,
   });
 
-  const {
-    data: blogs = [],
-    isLoading: blogsLoading,
-  } = useQuery({
+  const { data: blogs = [], isLoading: blogsLoading } = useQuery({
     queryKey: ["home-blogs"],
     queryFn: getBlogs,
   });
@@ -85,12 +74,13 @@ export default function HomePage() {
   return (
       <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-950 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
         <section className="mx-auto max-w-6xl">
-          <header className="mb-8 rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-black/30">
+          <header className="mb-6 rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/90 dark:bg-slate-900/90 dark:shadow-black/30">
             <nav className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <Link href="/" className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950">
                   <BookOpen size={24} />
                 </div>
+
                 <div>
                   <p className="text-xl font-black text-slate-950 dark:text-white">
                     Learn English
@@ -157,46 +147,49 @@ export default function HomePage() {
               </div>
             </nav>
 
-            <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-              <div>
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
-                  <Sparkles size={16} />
-                  یادگیری زبان با استادهای واقعی
-                </div>
+            <div className="flex flex-col items-center text-center">
+              <h1 className="whitespace-nowrap text-3xl font-black leading-[1.4] text-slate-950 dark:text-white md:text-4xl xl:text-5xl">
+                دوره، استاد و محتوای آموزشی را یک‌جا پیدا کن
+              </h1>
 
-                <h1 className="text-4xl font-black leading-[1.4] text-slate-950 dark:text-white md:text-5xl">
-                  دوره، استاد و محتوای آموزشی را یک‌جا پیدا کن
-                </h1>
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <Link
+                    href="/courses"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-6 py-4 font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+                >
+                  مشاهده دوره‌ها
+                  <ArrowLeft size={18} />
+                </Link>
 
-                <p className="mt-5 max-w-2xl leading-8 text-slate-500 dark:text-slate-400">
-                  این صفحه داده‌های واقعی دوره‌ها، استادها و مقاله‌ها را از بک‌اند دریافت می‌کند و خلاصه‌ای از محتوای پلتفرم را نمایش می‌دهد.
-                </p>
-
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                      href="/courses"
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-6 py-4 font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
-                  >
-                    مشاهده دوره‌ها
-                    <ArrowLeft size={18} />
-                  </Link>
-
-                  <Link
-                      href="/register/student"
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    ثبت‌نام دانش‌آموز
-                  </Link>
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                <HeroStat icon={<BookOpen size={22} />} label="دوره فعال" value={`${courses.length}`} />
-                <HeroStat icon={<UserRound size={22} />} label="استاد ثبت‌شده" value={`${tutors.length}`} />
-                <HeroStat icon={<BookOpenText size={22} />} label="مقاله آموزشی" value={`${blogs.length}`} />
+                <Link
+                    href="/register/student"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  ثبت‌نام دانش‌آموز
+                </Link>
               </div>
             </div>
           </header>
+
+          <section className="mb-8 grid gap-4 md:grid-cols-3">
+            <HeroStat
+                icon={<BookOpen size={20} />}
+                label="دوره فعال"
+                value={`${courses.length}`}
+            />
+
+            <HeroStat
+                icon={<UserRound size={20} />}
+                label="استاد ثبت‌شده"
+                value={`${tutors.length}`}
+            />
+
+            <HeroStat
+                icon={<BookOpenText size={20} />}
+                label="مقاله آموزشی"
+                value={`${blogs.length}`}
+            />
+          </section>
 
           {isLoading ? (
               <HomeLoading />
@@ -266,12 +259,22 @@ function HeroStat({
   value: string;
 }) {
   return (
-      <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-600 dark:text-emerald-300">
-          {icon}
+      <div className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-600 dark:text-emerald-300">
+            {icon}
+          </div>
+
+          <div className="text-right">
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+              {label}
+            </p>
+
+            <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+              {value}
+            </p>
+          </div>
         </div>
-        <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="mt-2 text-3xl font-black text-slate-950 dark:text-white">{value}</p>
       </div>
   );
 }
@@ -290,7 +293,9 @@ function HomeSection({
   return (
       <section className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-sm dark:border-slate-800/90 dark:bg-slate-900/90">
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 className="text-xl font-black text-slate-950 dark:text-white">{title}</h2>
+          <h2 className="text-xl font-black text-slate-950 dark:text-white">
+            {title}
+          </h2>
 
           <Link
               href={href}
@@ -316,8 +321,12 @@ function CourseMiniCard({ course }: { course: Course }) {
           className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-950"
       >
         <CardImage src={image} alt={title} />
+
         <div className="p-4">
-          <h3 className="line-clamp-1 font-black text-slate-950 dark:text-white">{title}</h3>
+          <h3 className="line-clamp-1 font-black text-slate-950 dark:text-white">
+            {title}
+          </h3>
+
           <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400">
             <GraduationCap size={16} />
             {course.language || "زبان نامشخص"}
@@ -339,13 +348,19 @@ function TutorMiniCard({ tutor }: { tutor: Tutor }) {
       >
         <div className="mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-emerald-400/10 text-emerald-600 dark:text-emerald-300">
           {tutor.profile_picture ? (
-              <img src={tutor.profile_picture} alt={name} className="h-full w-full object-cover" />
+              <img
+                  src={tutor.profile_picture}
+                  alt={name}
+                  className="h-full w-full object-cover"
+              />
           ) : (
               <UserRound size={26} />
           )}
         </div>
 
-        <h3 className="line-clamp-1 font-black text-slate-950 dark:text-white">{name}</h3>
+        <h3 className="line-clamp-1 font-black text-slate-950 dark:text-white">
+          {name}
+        </h3>
 
         <p className="mt-2 line-clamp-1 text-sm font-bold text-slate-500 dark:text-slate-400">
           {subjects.join("، ") || "موضوع ثبت نشده"}
@@ -369,8 +384,11 @@ function BlogMiniCard({ blog }: { blog: Blog }) {
           className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-950"
       >
         <CardImage src={image} alt={title} />
+
         <div className="p-4">
-          <h3 className="line-clamp-1 font-black text-slate-950 dark:text-white">{title}</h3>
+          <h3 className="line-clamp-1 font-black text-slate-950 dark:text-white">
+            {title}
+          </h3>
 
           <p className="mt-2 line-clamp-2 min-h-12 text-sm leading-6 text-slate-500 dark:text-slate-400">
             {description}
@@ -419,6 +437,7 @@ function EmptyState({ text }: { text: string }) {
       </div>
   );
 }
+
 type HomeAuthUser = {
   role?: string;
   user_type?: string;
