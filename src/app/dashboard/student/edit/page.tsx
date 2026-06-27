@@ -89,9 +89,6 @@ function StudentEditProfileShell({ children }: { children: React.ReactNode }) {
                                 ویرایش پروفایل دانش‌آموز
                             </h1>
 
-                            <p className="mt-2 leading-7 text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                                اطلاعات پایه پروفایل خود را ویرایش کنید.
-                            </p>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -197,9 +194,6 @@ function StudentProfileForm({
                         اطلاعات پروفایل
                     </h2>
 
-                    <p className="mt-1 text-sm text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                        این اطلاعات از طریق API بک‌اند ذخیره می‌شود.
-                    </p>
                 </div>
             </div>
 
