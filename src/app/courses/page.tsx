@@ -79,7 +79,7 @@ function CoursesPageContent() {
                                 href="/dashboard/student"
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
                             >
-                                داشبورد دانش‌آموز
+                                خانه
                             </Link>
                         </div>
                     </div>

@@ -9,11 +9,15 @@ import {
   BookOpen,
   BookOpenText,
   GraduationCap,
+  LayoutDashboard,
+  LogOut,
   ImageIcon,
   Sparkles,
   UserRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
+import { logoutUser } from "@/services/auth.service";
 import {
   getCourseImage,
   getCourseTitle,
@@ -38,6 +42,16 @@ import {
 } from "@/services/blogs.service";
 
 export default function HomePage() {
+
+  const { user, isAuthenticated } = useAuth();
+
+  const dashboardInfo = getDashboardInfo(user);
+
+  async function handleLogout() {
+    await logoutUser();
+    window.location.href = "/login";
+  }
+
   const {
     data: courses = [],
     isLoading: coursesLoading,
@@ -101,7 +115,7 @@ export default function HomePage() {
                     href="/tutors"
                     className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  استادها
+                  اساتید
                 </Link>
 
                 <Link
@@ -111,12 +125,35 @@ export default function HomePage() {
                   بلاگ
                 </Link>
 
-                <Link
-                    href="/login"
-                    className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
-                >
-                  ورود
-                </Link>
+                {isAuthenticated ? (
+                    <>
+                      {dashboardInfo && (
+                          <Link
+                              href={dashboardInfo.href}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+                          >
+                            <LayoutDashboard size={17} />
+                            {dashboardInfo.label}
+                          </Link>
+                      )}
+
+                      <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-red-500/20 transition hover:bg-red-400"
+                      >
+                        <LogOut size={17} />
+                        خروج
+                      </button>
+                    </>
+                ) : (
+                    <Link
+                        href="/login"
+                        className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+                    >
+                      ورود
+                    </Link>
+                )}
               </div>
             </nav>
 
@@ -381,4 +418,42 @@ function EmptyState({ text }: { text: string }) {
         {text}
       </div>
   );
+}
+type HomeAuthUser = {
+  role?: string;
+  user_type?: string;
+  account_type?: string;
+  is_student?: boolean;
+  is_tutor?: boolean;
+  student?: unknown;
+  tutor?: unknown;
+};
+
+function getDashboardInfo(user: unknown) {
+  if (!user || typeof user !== "object") return null;
+
+  const currentUser = user as HomeAuthUser;
+
+  const role = String(
+      currentUser.role ??
+      currentUser.user_type ??
+      currentUser.account_type ??
+      ""
+  ).toLowerCase();
+
+  if (role.includes("tutor") || currentUser.is_tutor || currentUser.tutor) {
+    return {
+      href: "/dashboard/tutor",
+      label: "داشبورد استاد",
+    };
+  }
+
+  if (role.includes("student") || currentUser.is_student || currentUser.student) {
+    return {
+      href: "/dashboard/student",
+      label: "داشبورد دانش‌آموز",
+    };
+  }
+
+  return null;
 }

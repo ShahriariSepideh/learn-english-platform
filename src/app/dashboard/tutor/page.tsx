@@ -3,7 +3,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     AlertCircle,
     BookOpen,
@@ -17,6 +18,9 @@ import {
     UserRound,
     Video,
 } from "lucide-react";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { api } from "@/services/api";
@@ -59,20 +63,79 @@ type TutorDashboard = {
     is_approved?: boolean;
 };
 
+type CreateTutorProfilePayload = {
+    country: string;
+    phoneNumber: string;
+    bio: string;
+    teachingStyle: string;
+    expectation: string;
+    language: string;
+    languageLevel: string;
+    subject: string;
+    profilePicture: File | null;
+    introVideoFile: File | null;
+};
+
+async function createTutorProfile(payload: CreateTutorProfilePayload) {
+    initializeAccessToken();
+
+    const formData = new FormData();
+
+    formData.append("country", payload.country);
+    formData.append("phone_number", payload.phoneNumber);
+    formData.append("bio", payload.bio);
+    formData.append("teaching_style", payload.teachingStyle);
+    formData.append("expectation", payload.expectation);
+
+    formData.append(
+        "languages_spoken",
+        JSON.stringify([
+            {
+                language: payload.language,
+                level: payload.languageLevel,
+            },
+        ])
+    );
+
+    formData.append("subjects", JSON.stringify([payload.subject]));
+
+    if (payload.profilePicture) {
+        formData.append("profile_picture", payload.profilePicture, payload.profilePicture.name);
+    }
+
+    if (payload.introVideoFile) {
+        formData.append("intro_video_file", payload.introVideoFile, payload.introVideoFile.name);
+    }
+
+    return api.post("/create-tutor-profile/", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+}
+
 async function getTutorDashboard(): Promise<TutorDashboard | null> {
     initializeAccessToken();
 
-    const response = await api.get<unknown>("/tutors/me/dashboard/");
+    try {
+        const response = await api.get<unknown>("/tutors/me/dashboard/");
 
-    if (Array.isArray(response.data)) {
-        return response.data[0] ?? null;
+        if (Array.isArray(response.data)) {
+            return response.data[0] ?? null;
+        }
+
+        if (typeof response.data === "object" && response.data !== null) {
+            return response.data as TutorDashboard;
+        }
+
+        return null;
+    } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) {
+            return null;
+        }
+
+        throw error;
     }
-
-    if (typeof response.data === "object" && response.data !== null) {
-        return response.data as TutorDashboard;
-    }
-
-    return null;
 }
 
 function getTutorName(tutor: TutorDashboard | null) {
@@ -156,7 +219,16 @@ function getLanguagesText(value: unknown) {
     return "ثبت نشده";
 }
 
+
+
 export default function TutorDashboardPage() {
+    return (
+        <ProtectedRoute>
+            <TutorDashboardContent />
+        </ProtectedRoute>
+    );
+}
+function TutorDashboardContent() {
     const {
         data: tutor,
         isLoading,
@@ -267,12 +339,9 @@ export default function TutorDashboardPage() {
                 </div>
 
                 {!tutor ? (
-                    <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
-                        <h2 className="text-xl font-black">پروفایل استاد هنوز تکمیل نشده است</h2>
-                        <p className="mt-3 leading-7">
-                            برای فعال شدن داشبورد استاد، ابتدا باید پروفایل استاد را تکمیل کنید.
-                        </p>
-                    </div>
+                    <TutorCreateProfileForm />
+                ) : tutor.is_approved === false ? (
+                    <TutorWaitingApproval tutor={tutor} />
                 ) : (
                     <>
                         <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -323,6 +392,8 @@ export default function TutorDashboardPage() {
                                     <InfoRow label="سبک تدریس" value={tutor.teaching_style || "ثبت نشده"} />
                                     <InfoRow label="انتظار از دانشجو" value={tutor.expectation || "ثبت نشده"} />
                                 </div>
+
+
 
                                 {(tutor.intro_video_file || tutor.intro_video_url) && (
                                     <a
@@ -420,5 +491,301 @@ function InfoRow({ label, value }: { label: string; value: string }) {
             <p className="text-xs font-black text-slate-400 dark:text-slate-500">{label}</p>
             <p className="mt-2 leading-7 text-slate-700 dark:text-slate-300">{value}</p>
         </div>
+    );
+}
+function TutorCreateProfileForm() {
+    const queryClient = useQueryClient();
+
+    const [step, setStep] = useState(1);
+
+    const [country, setCountry] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [bio, setBio] = useState("");
+    const [teachingStyle, setTeachingStyle] = useState("");
+    const [expectation, setExpectation] = useState("");
+    const [language, setLanguage] = useState("English");
+    const [languageLevel, setLanguageLevel] = useState("B1");
+    const [subject, setSubject] = useState("English");
+    const [profilePicture, setProfilePicture] = useState<File | null>(null);
+    const [introVideoFile, setIntroVideoFile] = useState<File | null>(null);
+
+    const createProfileMutation = useMutation({
+        mutationFn: createTutorProfile,
+        onSuccess: async () => {
+            toast.success("پروفایل استاد ثبت شد و در انتظار تأیید ادمین قرار گرفت.");
+            await queryClient.invalidateQueries({ queryKey: ["tutor-dashboard"] });
+        },
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error));
+        },
+    });
+
+    function goNext() {
+        if (step === 1 && (!country || !phoneNumber || !bio)) {
+            toast.error("لطفاً کشور، شماره تماس و معرفی کوتاه را وارد کنید.");
+            return;
+        }
+
+        if (step === 2 && (!language || !languageLevel || !subject)) {
+            toast.error("لطفاً زبان، سطح زبان و موضوع تدریس را وارد کنید.");
+            return;
+        }
+
+        setStep((current) => Math.min(current + 1, 3));
+    }
+
+    function goBack() {
+        setStep((current) => Math.max(current - 1, 1));
+    }
+
+    function handleSubmit() {
+        if (!profilePicture) {
+            toast.error("لطفاً عکس پروفایل را آپلود کنید.");
+            return;
+        }
+
+        if (!introVideoFile) {
+            toast.error("لطفاً ویدئوی معرفی را آپلود کنید.");
+            return;
+        }
+
+        createProfileMutation.mutate({
+            country,
+            phoneNumber,
+            bio,
+            teachingStyle,
+            expectation,
+            language,
+            languageLevel,
+            subject,
+            profilePicture,
+            introVideoFile,
+        });
+    }
+
+    return (
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-amber-900 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+            <div className="mb-6">
+                <p className="mb-2 text-sm font-black text-amber-700 dark:text-amber-300">
+                    Create Profile
+                </p>
+
+                <h2 className="text-xl font-black">
+                    پروفایل استاد هنوز تکمیل نشده است
+                </h2>
+
+                <p className="mt-3 leading-7">
+                    برای فعال شدن داشبورد استاد، ابتدا اطلاعات پروفایل خود را تکمیل کنید.
+                    بعد از ارسال، پروفایل شما در انتظار تأیید ادمین قرار می‌گیرد.
+                </p>
+            </div>
+
+            <div className="mb-6 grid gap-3 md:grid-cols-3">
+                <StepBadge active={step === 1} done={step > 1} label="اطلاعات اولیه" />
+                <StepBadge active={step === 2} done={step > 2} label="تخصص و زبان" />
+                <StepBadge active={step === 3} done={false} label="آپلود فایل" />
+            </div>
+
+            <div className="rounded-[1.5rem] border border-amber-200 bg-white/80 p-5 dark:border-amber-400/20 dark:bg-slate-950/60">
+                {step === 1 && (
+                    <div className="grid gap-4">
+                        <FormField label="کشور">
+                            <input
+                                value={country}
+                                onChange={(event) => setCountry(event.target.value)}
+                                placeholder="مثلاً Germany"
+                                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                            />
+                        </FormField>
+
+                        <FormField label="شماره تماس">
+                            <input
+                                value={phoneNumber}
+                                onChange={(event) => setPhoneNumber(event.target.value)}
+                                placeholder="مثلاً 09123456789"
+                                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                            />
+                        </FormField>
+
+                        <FormField label="معرفی کوتاه">
+                            <textarea
+                                value={bio}
+                                onChange={(event) => setBio(event.target.value)}
+                                placeholder="خودتان و سابقه تدریس‌تان را کوتاه معرفی کنید."
+                                rows={4}
+                                className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold leading-7 text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                            />
+                        </FormField>
+                    </div>
+                )}
+
+                {step === 2 && (
+                    <div className="grid gap-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <FormField label="زبان تدریس">
+                                <input
+                                    value={language}
+                                    onChange={(event) => setLanguage(event.target.value)}
+                                    placeholder="English"
+                                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                />
+                            </FormField>
+
+                            <FormField label="سطح زبان">
+                                <input
+                                    value={languageLevel}
+                                    onChange={(event) => setLanguageLevel(event.target.value)}
+                                    placeholder="B1"
+                                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                />
+                            </FormField>
+                        </div>
+
+                        <FormField label="موضوع تدریس">
+                            <input
+                                value={subject}
+                                onChange={(event) => setSubject(event.target.value)}
+                                placeholder="English"
+                                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                            />
+                        </FormField>
+
+                        <FormField label="سبک تدریس">
+                            <textarea
+                                value={teachingStyle}
+                                onChange={(event) => setTeachingStyle(event.target.value)}
+                                placeholder="مثلاً کلاس مکالمه‌محور، تمرین محور یا پروژه‌محور"
+                                rows={3}
+                                className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold leading-7 text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                            />
+                        </FormField>
+
+                        <FormField label="انتظار از دانشجو">
+                            <textarea
+                                value={expectation}
+                                onChange={(event) => setExpectation(event.target.value)}
+                                placeholder="مثلاً انجام تمرین‌ها، حضور منظم، تمرین روزانه"
+                                rows={3}
+                                className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold leading-7 text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                            />
+                        </FormField>
+                    </div>
+                )}
+
+                {step === 3 && (
+                    <div className="grid gap-4">
+                        <FormField label="عکس پروفایل">
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg"
+                                onChange={(event) => setProfilePicture(event.target.files?.[0] ?? null)}
+                                className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-600 file:ml-3 file:rounded-xl file:border-0 file:bg-emerald-400 file:px-3 file:py-2 file:font-black file:text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                            />
+                        </FormField>
+
+                        <FormField label="ویدئوی معرفی">
+                            <input
+                                type="file"
+                                accept="video/mp4,video/webm,video/quicktime"
+                                onChange={(event) => setIntroVideoFile(event.target.files?.[0] ?? null)}
+                                className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-600 file:ml-3 file:rounded-xl file:border-0 file:bg-emerald-400 file:px-3 file:py-2 file:font-black file:text-slate-950 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                            />
+                        </FormField>
+
+                    </div>
+                )}
+
+                <div className="mt-6 flex flex-wrap justify-between gap-3">
+                    <button
+                        type="button"
+                        onClick={goBack}
+                        disabled={step === 1 || createProfileMutation.isPending}
+                        className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-black text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                        مرحله قبل
+                    </button>
+
+                    {step < 3 ? (
+                        <button
+                            type="button"
+                            onClick={goNext}
+                            className="rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+                        >
+                            مرحله بعد
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={createProfileMutation.isPending || !profilePicture || !introVideoFile}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {createProfileMutation.isPending && <Loader2 className="animate-spin" size={18} />}
+                            ارسال برای تأیید ادمین
+                        </button>
+                    )}
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function TutorWaitingApproval({ tutor }: { tutor: TutorDashboard }) {
+    return (
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-amber-900 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
+            <h2 className="text-xl font-black">پروفایل شما در انتظار تأیید ادمین است</h2>
+
+            <p className="mt-3 leading-7">
+                اطلاعات پروفایل شما ثبت شده است، اما تا زمانی که مدیر آن را تأیید نکند، داشبورد کامل استاد فعال نمی‌شود.
+            </p>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <InfoRow label="کشور" value={tutor.country || "ثبت نشده"} />
+                <InfoRow label="موضوعات" value={tutor.subjects?.join("، ") || "ثبت نشده"} />
+                <InfoRow label="بیوگرافی" value={tutor.bio || "ثبت نشده"} />
+                <InfoRow label="سبک تدریس" value={tutor.teaching_style || "ثبت نشده"} />
+            </div>
+        </section>
+    );
+}
+
+function StepBadge({
+                       active,
+                       done,
+                       label,
+                   }: {
+    active: boolean;
+    done: boolean;
+    label: string;
+}) {
+    return (
+        <div
+            className={`rounded-2xl border px-4 py-3 text-center text-sm font-black ${
+                active
+                    ? "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300"
+                    : done
+                        ? "border-emerald-200 bg-white text-emerald-700 dark:border-emerald-400/20 dark:bg-slate-950 dark:text-emerald-300"
+                        : "border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400"
+            }`}
+        >
+            {label}
+        </div>
+    );
+}
+
+function FormField({
+                       label,
+                       children,
+                   }: {
+    label: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <label className="grid gap-2">
+            <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                {label}
+            </span>
+            {children}
+        </label>
     );
 }

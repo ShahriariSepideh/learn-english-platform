@@ -48,7 +48,7 @@ function TutorsPageContent() {
                     <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                         <div>
                             <h1 className="text-2xl font-black text-slate-950 transition-colors duration-300 dark:text-white">
-                                استادها
+                                اساتید
                             </h1>
                         </div>
 
@@ -66,7 +66,7 @@ function TutorsPageContent() {
                                 href="/dashboard/student"
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3 font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
                             >
-                                داشبورد دانش‌آموز
+                                خانه
                             </Link>
                         </div>
                     </div>
@@ -209,7 +209,7 @@ function TutorsError({
 }) {
     return (
         <div className="rounded-[2rem] border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300">
-            <h2 className="font-black">خطا در دریافت استادها</h2>
+            <h2 className="font-black">خطا در دریافت اساتید</h2>
             <p className="mt-2 leading-7">{message}</p>
 
             <button
