@@ -729,12 +729,7 @@ function TutorDashboardContent() {
                             خانه
                         </Link>
 
-                        <Link
-                            href="/tutors"
-                            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 font-black text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                        >
-                            لیست اساتید
-                        </Link>
+
                     </div>
 
                     <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-center text-amber-900 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
@@ -818,12 +813,7 @@ function TutorDashboardContent() {
                                 خانه
                             </Link>
 
-                            <Link
-                                href="/tutors"
-                                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
-                            >
-                                لیست استادها
-                            </Link>
+
 
                             <button
                                 type="button"
