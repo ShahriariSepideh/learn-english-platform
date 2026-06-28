@@ -125,7 +125,10 @@ type TutorDashboard = {
     approved_is?: boolean | string | number;
     approved?: boolean | string | number;
     status?: string;
-    resolved_is_approved?: boolean;
+    admin_approved?: boolean | string | number;
+    profile_approved?: boolean | string | number;
+    tutor_approved?: boolean | string | number;
+
 };
 
 type CreateTutorProfilePayload = {
@@ -226,7 +229,6 @@ async function deleteCourse(courseId: number | string) {
 
     return api.delete(`/courses/${courseId}/`);
 }
-
 async function getTutorDashboard(): Promise<TutorDashboard | null> {
     initializeAccessToken();
 
@@ -246,58 +248,67 @@ async function getTutorDashboard(): Promise<TutorDashboard | null> {
                 is_approved?: boolean | string | number;
                 approved?: boolean | string | number;
                 approved_is?: boolean | string | number;
+                admin_approved?: boolean | string | number;
+                profile_approved?: boolean | string | number;
+                tutor_approved?: boolean | string | number;
                 status?: string;
-            };
+            } & Record<string, unknown>;
 
             if (data.tutor) {
+                const tutorRecord = data.tutor as TutorDashboard & Record<string, unknown>;
+
+                const approvalFlag = resolveApprovalFlag(
+                    tutorRecord.approved_is,
+                    data.approved_is,
+                    tutorRecord.is_approved,
+                    data.is_approved,
+                    tutorRecord.approved,
+                    data.approved,
+                    tutorRecord.admin_approved,
+                    data.admin_approved,
+                    tutorRecord.profile_approved,
+                    data.profile_approved,
+                    tutorRecord.tutor_approved,
+                    data.tutor_approved
+                );
+
                 tutor = {
                     ...data.tutor,
                     courses: data.courses ?? data.tutor.courses ?? [],
                     enrollments: data.enrollments ?? data.tutor.enrollments ?? [],
                     reviews: data.reviews ?? data.tutor.reviews ?? [],
-                    is_approved: data.tutor.is_approved ?? data.is_approved,
-                    approved: data.tutor.approved ?? data.approved,
-                    approved_is: data.tutor.approved_is ?? data.approved_is,
+                    is_approved: approvalFlag,
+                    approved_is: approvalFlag,
+                    approved: approvalFlag,
+                    admin_approved: resolveApprovalFlag(tutorRecord.admin_approved, data.admin_approved),
+                    profile_approved: resolveApprovalFlag(tutorRecord.profile_approved, data.profile_approved),
+                    tutor_approved: resolveApprovalFlag(tutorRecord.tutor_approved, data.tutor_approved),
                     status: data.tutor.status ?? data.status,
                 };
             } else {
-                tutor = data as TutorDashboard;
+                const dataRecord = data as TutorDashboard & Record<string, unknown>;
+
+                const approvalFlag = resolveApprovalFlag(
+                    dataRecord.approved_is,
+                    dataRecord.is_approved,
+                    dataRecord.approved,
+                    dataRecord.admin_approved,
+                    dataRecord.profile_approved,
+                    dataRecord.tutor_approved
+                );
+
+                tutor = {
+                    ...dataRecord,
+                    is_approved: approvalFlag,
+                    approved_is: approvalFlag,
+                    approved: approvalFlag,
+                };
             }
         }
 
         if (!tutor) return null;
 
-        const tutorsResponse = await api.get<unknown>("/tutors/");
-
-        const tutorsList = Array.isArray(tutorsResponse.data)
-            ? tutorsResponse.data
-            : typeof tutorsResponse.data === "object" &&
-            tutorsResponse.data !== null &&
-            Array.isArray((tutorsResponse.data as { results?: unknown[] }).results)
-                ? (tutorsResponse.data as { results: unknown[] }).results
-                : [];
-
-        const currentTutorId = String(tutor.id ?? "");
-        const currentTutorEmail = String(tutor.user?.email ?? "").toLowerCase().trim();
-
-        const existsInPublicTutorsList = tutorsList.some((item) => {
-            if (typeof item !== "object" || item === null) return false;
-
-            const publicTutor = item as TutorDashboard;
-
-            const publicTutorId = String(publicTutor.id ?? "");
-            const publicTutorEmail = String(publicTutor.user?.email ?? "").toLowerCase().trim();
-
-            return (
-                (currentTutorId && publicTutorId && currentTutorId === publicTutorId) ||
-                (currentTutorEmail && publicTutorEmail && currentTutorEmail === publicTutorEmail)
-            );
-        });
-
-        return {
-            ...tutor,
-            resolved_is_approved: existsInPublicTutorsList,
-        };
+        return tutor;
     } catch (error) {
         if (isAxiosError(error) && error.response?.status === 404) {
             return null;
@@ -306,7 +317,6 @@ async function getTutorDashboard(): Promise<TutorDashboard | null> {
         throw error;
     }
 }
-
 function getTutorName(tutor: TutorDashboard | null) {
     if (!tutor) return "استاد";
 
@@ -339,18 +349,49 @@ function isTruthyApproval(value: unknown) {
     return false;
 }
 
+
+function resolveApprovalFlag(...values: unknown[]) {
+    return values.some(isTruthyApproval);
+}
+
 function isTutorApproved(tutor: TutorDashboard | null) {
     if (!tutor) return false;
 
-    if (tutor.resolved_is_approved === true) return true;
+    const tutorRecord = tutor as Record<string, unknown>;
+    const userRecord =
+        tutor.user && typeof tutor.user === "object"
+            ? (tutor.user as Record<string, unknown>)
+            : {};
 
-    if (isTruthyApproval(tutor.is_approved)) return true;
-    if (isTruthyApproval(tutor.approved_is)) return true;
-    if (isTruthyApproval(tutor.approved)) return true;
+    if (
+        resolveApprovalFlag(
+            tutorRecord.approved_is,
+            tutorRecord.is_approved,
+            tutorRecord.approved,
+            tutorRecord.admin_approved,
+            tutorRecord.profile_approved,
+            tutorRecord.tutor_approved,
+            userRecord.approved_is,
+            userRecord.is_approved,
+            userRecord.approved,
+            userRecord.admin_approved,
+            userRecord.profile_approved,
+            userRecord.tutor_approved
+        )
+    ) {
+        return true;
+    }
 
-    const status = String(tutor.status ?? "").toLowerCase().trim();
+    const status = String(
+        tutorRecord.status ??
+        tutorRecord.approval_status ??
+        tutorRecord.profile_status ??
+        ""
+    )
+        .toLowerCase()
+        .trim();
 
-    return status === "approved" || status === "active";
+    return status === "approved";
 }
 
 function getLanguagesText(value: unknown) {
