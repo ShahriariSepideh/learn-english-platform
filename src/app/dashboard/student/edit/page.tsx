@@ -1,10 +1,12 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Loader2, Save, UserRound } from "lucide-react";
+import { ArrowRight, ImageIcon, Loader2, Save, UserRound } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -23,6 +25,7 @@ const studentProfileSchema = z.object({
     last_name: z.string().min(2, "نام خانوادگی باید حداقل ۲ کاراکتر باشد."),
     phone_number: z.string().optional(),
     bio: z.string().optional(),
+    profile_picture: z.any().optional(),
 });
 
 type StudentProfileFormValues = z.infer<typeof studentProfileSchema>;
@@ -86,9 +89,8 @@ function StudentEditProfileShell({ children }: { children: React.ReactNode }) {
                             </p>
 
                             <h1 className="text-2xl font-black text-slate-950 transition-colors duration-300 dark:text-white">
-                                ویرایش پروفایل دانش‌آموز
+                                ویرایش اطلاعات دانش‌آموز
                             </h1>
-
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -118,6 +120,12 @@ function StudentProfileForm({
 }) {
     const queryClient = useQueryClient();
 
+    const profilePictureUrl =
+        typeof profile?.profile_picture === "string" &&
+        profile.profile_picture.trim() !== ""
+            ? profile.profile_picture
+            : null;
+
     const {
         register,
         handleSubmit,
@@ -141,30 +149,34 @@ function StudentProfileForm({
             last_name: profile.last_name ?? "",
             phone_number: profile.phone_number ?? "",
             bio: profile.bio ?? "",
+            profile_picture: undefined,
         });
     }, [profile, reset]);
 
     const mutation = useMutation({
         mutationFn: updateStudentProfile,
-        onSuccess: (_data, variables) => {
-            const updatedProfile: StudentProfileUser = {
+        onSuccess: (updatedProfile) => {
+            const nextProfile: StudentProfileUser = {
                 ...(profile ?? {}),
-                first_name: variables.first_name ?? "",
-                last_name: variables.last_name ?? "",
-                phone_number: variables.phone_number ?? "",
-                bio: variables.bio ?? "",
+                ...updatedProfile,
+                student: {
+                    ...(profile?.student ?? {}),
+                    ...(updatedProfile.student ?? {}),
+                },
             };
 
-            queryClient.setQueryData(["student-profile"], updatedProfile);
+            queryClient.setQueryData(["student-profile"], nextProfile);
+            queryClient.invalidateQueries({ queryKey: ["student-profile"] });
 
             reset({
-                first_name: updatedProfile.first_name ?? "",
-                last_name: updatedProfile.last_name ?? "",
-                phone_number: updatedProfile.phone_number ?? "",
-                bio: updatedProfile.bio ?? "",
+                first_name: nextProfile.first_name ?? "",
+                last_name: nextProfile.last_name ?? "",
+                phone_number: nextProfile.phone_number ?? "",
+                bio: nextProfile.bio ?? "",
+                profile_picture: undefined,
             });
 
-            toast.success("پروفایل با موفقیت به‌روزرسانی شد.");
+            toast.success("اطلاعات با موفقیت به‌روزرسانی شد.");
         },
         onError: (error) => {
             toast.error(getApiErrorMessage(error));
@@ -172,21 +184,35 @@ function StudentProfileForm({
     });
 
     function onSubmit(values: StudentProfileFormValues) {
-        const cleanedValues: StudentProfileFormValues = {
-            first_name: values.first_name.trim(),
-            last_name: values.last_name.trim(),
-            phone_number: values.phone_number?.trim() ?? "",
-            bio: values.bio?.trim() ?? "",
-        };
+        const formData = new FormData();
 
-        mutation.mutate(cleanedValues);
+        formData.append("first_name", values.first_name.trim());
+        formData.append("last_name", values.last_name.trim());
+        formData.append("phone_number", values.phone_number?.trim() ?? "");
+        formData.append("bio", values.bio?.trim() ?? "");
+
+        const imageFile = values.profile_picture?.[0] as File | undefined;
+
+        if (imageFile) {
+            formData.append("profile_picture", imageFile);
+        }
+
+        mutation.mutate(formData);
     }
 
     return (
         <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-sm transition-colors duration-300 dark:border-slate-800/90 dark:bg-slate-900/90">
             <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-600 transition-colors duration-300 dark:text-emerald-300">
-                    <UserRound size={24} />
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-emerald-400/10 text-emerald-600 transition-colors duration-300 dark:text-emerald-300">
+                    {profilePictureUrl ? (
+                        <img
+                            src={profilePictureUrl}
+                            alt="عکس پروفایل"
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <UserRound size={24} />
+                    )}
                 </div>
 
                 <div>
@@ -194,10 +220,48 @@ function StudentProfileForm({
                         اطلاعات پروفایل
                     </h2>
 
+                    <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
+                        عکس، نام، شماره تلفن و بیوگرافی خود را ویرایش کنید.
+                    </p>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5">
+                <div>
+                    <label
+                        htmlFor="profile_picture"
+                        className="mb-2 block text-sm font-bold text-slate-700 transition-colors duration-300 dark:text-slate-200"
+                    >
+                        عکس پروفایل
+                    </label>
+
+                    <label
+                        htmlFor="profile_picture"
+                        className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-900"
+                    >
+                        <ImageIcon
+                            size={28}
+                            className="text-emerald-600 dark:text-emerald-300"
+                        />
+
+                        <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                            برای انتخاب عکس جدید کلیک کنید
+                        </span>
+
+                        <span className="text-xs font-bold text-slate-400">
+                            JPG, PNG, WEBP
+                        </span>
+                    </label>
+
+                    <input
+                        id="profile_picture"
+                        type="file"
+                        accept="image/*"
+                        {...register("profile_picture")}
+                        className="hidden"
+                    />
+                </div>
+
                 <div className="grid gap-5 md:grid-cols-2">
                     <div>
                         <label
@@ -249,7 +313,7 @@ function StudentProfileForm({
                         htmlFor="phone_number"
                         className="mb-2 block text-sm font-bold text-slate-700 transition-colors duration-300 dark:text-slate-200"
                     >
-                        شماره تماس
+                        شماره تلفن
                     </label>
 
                     <input
@@ -266,7 +330,7 @@ function StudentProfileForm({
                         htmlFor="bio"
                         className="mb-2 block text-sm font-bold text-slate-700 transition-colors duration-300 dark:text-slate-200"
                     >
-                        بیوگرافی
+                       بیوگرافی
                     </label>
 
                     <textarea

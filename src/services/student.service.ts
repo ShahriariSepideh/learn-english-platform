@@ -11,6 +11,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
 }
 
+function getStringOrUndefined(value: unknown): string | undefined {
+    if (typeof value !== "string") return undefined;
+    return value;
+}
+
 function normalizeUserData(data: unknown): StudentProfileUser {
     if (!isRecord(data)) {
         return {};
@@ -69,25 +74,29 @@ function mergeStudentProfile(
     base: StudentProfileUser,
     next: StudentProfileUser
 ): StudentProfileUser {
-    const merged: StudentProfileUser = {
+    const nextPhoneNumber = getStringOrUndefined(next.phone_number);
+    const nextBio = getStringOrUndefined(next.bio);
+    const nextProfilePicture = getStringOrUndefined(next.profile_picture);
+
+    return {
         ...base,
         ...next,
         student: {
             ...(base.student ?? {}),
             ...(next.student ?? {}),
         },
-    };
-
-    return {
-        ...merged,
         phone_number:
-            next.phone_number && next.phone_number.trim() !== ""
-                ? next.phone_number
+            nextPhoneNumber && nextPhoneNumber.trim() !== ""
+                ? nextPhoneNumber
                 : base.phone_number ?? "",
         bio:
-            next.bio && next.bio.trim() !== ""
-                ? next.bio
+            nextBio && nextBio.trim() !== ""
+                ? nextBio
                 : base.bio ?? "",
+        profile_picture:
+            nextProfilePicture && nextProfilePicture.trim() !== ""
+                ? nextProfilePicture
+                : base.profile_picture ?? null,
     };
 }
 
@@ -135,9 +144,23 @@ export async function getStudentProfile(): Promise<StudentProfileUser> {
 }
 
 export async function updateStudentProfile(
-    payload: UpdateStudentProfilePayload
+    payload: UpdateStudentProfilePayload | FormData
 ): Promise<StudentProfileUser> {
     initializeAccessToken();
+
+    if (payload instanceof FormData) {
+        const response = await api.patch<StudentProfileResponse | StudentProfileUser>(
+            "/students/me/profile/",
+            payload,
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            }
+        );
+
+        return normalizeStudentProfile(response.data);
+    }
 
     const response = await api.patch<StudentProfileResponse | StudentProfileUser>(
         "/students/me/profile/",
